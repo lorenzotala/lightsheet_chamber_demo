@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Large sample locator</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 30vh;
+            margin: 0;
+        }
+
+        .canvas-container {
+            position: absolute;
+            top: 30vh;
+            left: 85vh
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .slider-label {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Large sample locator</h1>
+    <div>
+        <label for="fov-slider">FOV (Field of View):</label>
+        <select id="fov-slider">
+            <option value="20">2.5x</option>
+            <option value="5">5x</option>
+            <option value="2.5">20x</option>
+        </select>
+    </div>
+
+    <div class="slider-container">
+        <label class="slider-label" for="vertical-slider">Vertical:</label>
+        <input type="range" id="vertical-slider" min="1" max="400" step="1">
+        <!-- <span id="verticalslider-value">105</span> -->
+    </div>
+
+    <div class="slider-container">
+        <label class="slider-label" for="horizontal-slider">Horizontal:</label>
+        <input type="range" id="horizontal-slider" min="1" max="400" step="1">
+        <!-- <span id="horizontalslider-value">145</span> -->
+    </div>
+
+    <div class="slider-container">
+        <label class="slider-label" for="circle-radius">Sample Radius:</label>
+        <input type="range" id="circle-radius" min="1" max="100" step="1">
+        <span id="radiusslider-value">50</span>
+        <span id="radiusslider-unit">%</span>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="background-canvas" width="400" height="400"></canvas>
+        <canvas id="chamber-canvas" width="400" height="400"></canvas>
+        <canvas id="circle-canvas" width="400" height="400"></canvas>
+    </div>
+    <script>
+        const backgroundCanvas = document.getElementById("background-canvas");
+        const chamberCanvas = document.getElementById("chamber-canvas");
+        const circleCanvas = document.getElementById("circle-canvas");
+        const backgroundCtx = backgroundCanvas.getContext("2d");
+        const chamberCtx = chamberCanvas.getContext("2d");
+        const circleCtx = circleCanvas.getContext("2d");
+
+        const verticalSlider = document.getElementById("vertical-slider");
+        const horizontalSlider = document.getElementById("horizontal-slider");
+        const circleRadius = document.getElementById("circle-radius");
+        // const verticalsliderValueSpan = document.getElementById("verticalslider-value");
+        // const horizontalsliderValueSpan = document.getElementById("horizontalslider-value");
+        const radiussliderValueSpan = document.getElementById("radiusslider-value");
+
+        let disp_x = 175;
+        let disp_y = 175;
+        let circle_radius = 50;
+        let radius_real_value = 10;
+        const chamber_width = 160;
+        const chamber_height = 240;
+        const chamber_Xpos = (chamberCanvas.width - chamber_width) / 2;
+        const chamber_Ypos = (chamberCanvas.height - chamber_height) / 2;;
+
+        let Vertical_bound_UP= chamber_Ypos + 15;
+        let Vertical_bound_DOWN = chamber_Ypos + chamber_height - 15;
+        let horizontal_bound_L = chamber_Xpos + 15;
+        let horizontal_bound_R = chamber_Xpos + chamber_width - 15;
+
+        function moveCircleHorizontal(value) {
+            const x = parseInt(value, 10); // No need to multiply by 1
+            disp_x = x;
+            drawCircle(circle_radius);
+        }
+
+        function moveCircleVertical(value) {
+            const y = parseInt(value, 10); // No need to multiply by 1
+            disp_y = y;
+            drawCircle(circle_radius);
+        }
+
+        function resizeCameraFov() {
+            const fovWidth = parseInt(document.getElementById("fov-slider").value, 10) * 2;
+            drawFOV(fovWidth);
+        }
+
+        function drawCircle(percent = circle_radius) {
+            let radius = (percent*(chamber_width-30))/200;
+            circleCtx.clearRect(0, 0, circleCanvas.width, circleCanvas.height);
+            drawOrigin(disp_x, disp_y);
+            circleCtx.beginPath();
+
+            if (disp_x + radius > horizontal_bound_R) {
+                disp_x = disp_x - (disp_x + radius - horizontal_bound_R);
+            } else if (disp_x - radius < horizontal_bound_L) {
+                disp_x = disp_x + (horizontal_bound_L - disp_x + radius);
+            }
+
+            if (disp_y + radius > Vertical_bound_DOWN) {
+                disp_y = disp_y - (disp_y + radius - Vertical_bound_DOWN);
+            } else if (disp_y - radius < Vertical_bound_UP) {
+                disp_y = disp_y + (Vertical_bound_UP - disp_y + radius);
+            }
+
+            circleCtx.fillStyle = "rgba(204, 204, 0, 0.5)"; // 30% opacity
+            circleCtx.arc(disp_x, disp_y, radius, 0, Math.PI * 2);
+            circleCtx.fill();
+            circle_radius = percent;
+            radius_real_value = radius;
+        }
+
+        function drawOrigin(X, Y) {
+            circleCtx.fillStyle = "rgba(0, 0, 0, 1)"; // 100% opacity
+            circleCtx.fillRect(X,Y,1,1);
+        }
+
+        function drawFOV(fovWidth) {
+            backgroundCtx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+            backgroundCtx.beginPath();
+            backgroundCtx.moveTo(backgroundCanvas.width / 2, 0);
+            backgroundCtx.lineTo(backgroundCanvas.width / 2, backgroundCanvas.height/2);
+            backgroundCtx.lineWidth = fovWidth;
+            backgroundCtx.strokeStyle = "rgba(0, 255, 0, 1)"; // 100% opacity
+            backgroundCtx.stroke();
+            
+            
+            drawObjective();
+            drawIlluminationObjectives();
+        }
+
+        function drawObjective() {
+            // Draw a square
+            backgroundCtx.fillStyle = "rgba(0, 0, 0, 0.9)"; // black with 70% opacity
+            backgroundCtx.fillRect(backgroundCanvas.width / 2 - 35, 0, 70, 50);
+
+            // Draw a trapezium
+            backgroundCtx.beginPath();
+            backgroundCtx.moveTo(backgroundCanvas.width / 2 - 35, 50);
+            backgroundCtx.lineTo(backgroundCanvas.width / 2 + 35, 50);
+            backgroundCtx.lineTo(backgroundCanvas.width / 2 + 25, 60);
+            backgroundCtx.lineTo(backgroundCanvas.width / 2 - 25, 60);
+            backgroundCtx.closePath();
+            backgroundCtx.fillStyle = "rgba(0, 0, 0, 0.9)"; // black with 70% opacity
+            backgroundCtx.fill();
+        }
+
+        function drawIlluminationObjectives() {
+            // Drawing arcs for lightsheet
+            backgroundCtx.beginPath();
+            backgroundCtx.lineWidth = 7;
+            backgroundCtx.strokeStyle = "rgba(0, 30, 255, 0.6)"; // 30% opacity
+            backgroundCtx.arc(backgroundCanvas.width / 2, chamber_Ypos + chamber_height/2-2500, 2500, 0, Math.PI*2);
+            backgroundCtx.arc(backgroundCanvas.width / 2, chamber_Ypos + chamber_height/2+2500, 2500, 0, Math.PI*2);
+            backgroundCtx.stroke();
+
+            // Draw a square left
+            backgroundCtx.fillStyle = "rgba(0, 0, 0, 0.9)"; // black with 70% opacity
+            backgroundCtx.fillRect(0, chamber_Ypos + chamber_height/2 - 60, 40, 120);
+            
+            // Draw a trapezium left
+            backgroundCtx.beginPath();
+            backgroundCtx.fillStyle = "rgba(0, 0, 0, 0.9)"; // black with 70% opacity
+            backgroundCtx.moveTo(40, chamber_Ypos + chamber_height/2 - 60);
+            backgroundCtx.lineTo(65, chamber_Ypos + chamber_height/2 - 45);
+            backgroundCtx.lineTo(65, chamber_Ypos + chamber_height/2 + 45);
+            backgroundCtx.lineTo(40, chamber_Ypos + chamber_height/2 + 60);
+            backgroundCtx.closePath();
+            backgroundCtx.fill();
+
+            // Draw a square right
+            backgroundCtx.fillStyle = "rgba(0, 0, 0, 0.9)"; // black with 70% opacity
+            backgroundCtx.fillRect(backgroundCanvas.width - 40, chamber_Ypos + chamber_height/2 - 60, 40, 120);
+
+            // Draw a trapezium right
+            backgroundCtx.beginPath();
+            backgroundCtx.fillStyle = "rgba(0, 0, 0, 0.9)"; // black with 70% opacity
+            backgroundCtx.moveTo(backgroundCanvas.width - 40, chamber_Ypos + chamber_height/2 - 60);
+            backgroundCtx.lineTo(backgroundCanvas.width - 65, chamber_Ypos + chamber_height/2 - 45);
+            backgroundCtx.lineTo(backgroundCanvas.width - 65, chamber_Ypos + chamber_height/2 + 45);
+            backgroundCtx.lineTo(backgroundCanvas.width - 40, chamber_Ypos + chamber_height/2 + 60);
+            backgroundCtx.closePath();
+            backgroundCtx.fill();
+        }
+
+        function drawChamber() {
+            // Draw a square
+            chamberCtx.lineWidth = 30;
+            chamberCtx.strokeStyle = "rgba(150, 150, 150, 1)"; // black and no opacity
+            chamberCtx.strokeRect(chamber_Xpos, chamber_Ypos, chamber_width, chamber_height);
+            chamberCtx.stroke();
+        }
+
+        function updateVerticalBoundaries(value_V) {
+            let radius = (value_V*(chamber_width-30))/200
+            verticalSlider.min = chamber_Ypos + radius/2 + 15;
+            verticalSlider.max = chamber_Ypos + chamber_height - radius/2 - 15;
+        }
+        function updateHorizontalBoundaries(value_H) {
+            let radius = (value_H*(chamber_width-30))/200
+            horizontalSlider.min = chamber_Xpos + radius/2 + 15;
+            horizontalSlider.max = chamber_Xpos + chamber_width - radius/2 - 15;
+        }
+
+        resizeCameraFov()
+        drawIlluminationObjectives()
+        drawChamber();
+        drawCircle(circle_radius);
+        updateVerticalBoundaries(circle_radius);
+        updateHorizontalBoundaries(circle_radius);
+
+
+        circleRadius.addEventListener("input", (event) => {
+            circle_radius = event.target.value;
+            drawCircle(event.target.value);
+            updateVerticalBoundaries(event.target.value);
+            updateHorizontalBoundaries(event.target.value);
+            const radiussliderValue = event.target.value;
+            radiussliderValueSpan.textContent = radiussliderValue;
+            printer_RAD.textContent = radius_real_value;
+        });
+        verticalSlider.addEventListener("input", (event) => {
+            moveCircleVertical(event.target.value);
+            const verticalsliderValue = event.target.value;
+            // verticalsliderValueSpan.textContent = verticalsliderValue;
+        });
+        horizontalSlider.addEventListener("input", (event) => {
+            moveCircleHorizontal(event.target.value);
+            const horizontalsliderValue = event.target.value;
+            // horizontalsliderValueSpan.textContent = horizontalsliderValue;
+        });
+
+        document.getElementById("fov-slider").addEventListener("change", resizeCameraFov);
+    </script>
+</body>
+</html>

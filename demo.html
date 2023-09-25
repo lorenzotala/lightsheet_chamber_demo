@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Large sample locator</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 30vh;
+            margin: 0;
+        }
+
+        .canvas-container {
+            position: absolute;
+            top: 30vh;
+            left: 85vh
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .slider-label {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Large sample locator</h1>
+    <div>
+        <label for="fov-slider">FOV (Field of View):</label>
+        <select id="fov-slider">
+            <option value="20">2.5</option>
+            <option value="5">5</option>
+            <option value="2.5">20</option>
+        </select>
+    </div>
+
+    <div class="slider-container">
+        <label class="slider-label" for="vertical-slider">Vertical:</label>
+        <input type="range" id="vertical-slider" min="105" max="245" step="1">
+        <span id="verticalslider-value">105</span>
+    </div>
+
+    <div class="slider-container">
+        <label class="slider-label" for="horizontal-slider">Horizontal:</label>
+        <input type="range" id="horizontal-slider" min="145" max="205" step="1">
+        <span id="horizontalslider-value">145</span>
+    </div>
+
+    <div class="slider-container">
+        <label class="slider-label" for="circle-radius">Sample Radius:</label>
+        <input type="range" id="circle-radius" min="1" max="50" step="1">
+        <span id="radiusslider-value">1</span>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="background-canvas" width="400" height="400"></canvas>
+        <canvas id="chamber-canvas" width="400" height="400"></canvas>
+        <canvas id="circle-canvas" width="400" height="400"></canvas>
+    </div>
+    <script src = "demo_script.js"></script>
+</body>
+</html>
